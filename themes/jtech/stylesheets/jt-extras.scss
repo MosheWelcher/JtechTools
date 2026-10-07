@@ -156,6 +156,7 @@
     padding-inline: 0.85em 0.6em;
     font-family: var(--jt-font-mono);
     font-size: var(--font-down-1);
+
     // the code's line box (jt-type): inheriting the post's 1.7 would multiply
     // the gutter's smaller font and drift off the lines as the code scrolls
     line-height: calc(var(--jt-text-sm) * 1.6);
