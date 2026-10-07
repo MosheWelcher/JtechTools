@@ -2922,6 +2922,42 @@ RSpec.describe "JTech theme" do
       expect_no_theme_errors
     end
 
+    # Core caps <code> at 500px and scrolls it. The gutter used to keep every
+    # line's height: empty numbers under the code, and past core's 2000px cap on
+    # <pre> they spilled out of the box over the next paragraph.
+    it "keeps a tall code block's numbers inside the box and scrolls them with the code" do
+      tall = Fabricate(:topic, category: category, user: admin, title: "A topic with a long log")
+      Fabricate(
+        :post,
+        topic: tall,
+        user: admin,
+        raw: "```bash\n#{(1..60).map { |i| "echo #{i}" }.join("\n")}\n```\n\nAfter the block.",
+      )
+      visit(tall.relative_url)
+      expect(page).to have_css("pre.jt-numbered .jt-lines")
+      sizes = page.evaluate_async_script(<<~JS)
+        const done = arguments[0];
+        const pre = document.querySelector("pre.jt-numbered");
+        const code = pre.querySelector(":scope > code");
+        const gutter = pre.querySelector(":scope > .jt-lines");
+        code.scrollTop = code.scrollHeight;
+        requestAnimationFrame(() => requestAnimationFrame(() => done({
+          codeScrolls: code.scrollHeight > code.clientHeight,
+          codeHeight: code.offsetHeight,
+          gutterHeight: gutter.offsetHeight,
+          preHeight: pre.offsetHeight,
+          codeTop: code.scrollTop,
+          gutterTop: gutter.scrollTop,
+        })));
+      JS
+      expect(sizes["codeScrolls"]).to eq(true)
+      expect(sizes["gutterHeight"]).to eq(sizes["codeHeight"])
+      expect(sizes["preHeight"]).to be <= sizes["codeHeight"] + 2 # the box's border
+      expect(sizes["codeTop"]).to be > 0
+      expect(sizes["gutterTop"]).to eq(sizes["codeTop"])
+      expect_no_theme_errors
+    end
+
     # Code runs left to right in any interface, but core's right-to-left
     # stylesheet flips left and right: in Hebrew the line between the numbers
     # and the code moved onto the block's outer edge, and on a phone the room
