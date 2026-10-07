@@ -34,15 +34,10 @@ function addLineNumbers(pre: HTMLElement, code: HTMLElement): void {
   );
   pre.classList.add("jt-numbered");
   pre.insertBefore(gutter, code);
-  // A tall block scrolls inside its box (core caps <code> at 500px), and the
-  // numbers have to move with the lines
-  code.addEventListener(
-    "scroll",
-    () => {
-      gutter.scrollTop = code.scrollTop;
-    },
-    { passive: true }
-  );
+  // core scrolls a tall <code> inside its box; the numbers follow
+  code.addEventListener("scroll", () => (gutter.scrollTop = code.scrollTop), {
+    passive: true,
+  });
 }
 
 export default apiInitializer((api) => {

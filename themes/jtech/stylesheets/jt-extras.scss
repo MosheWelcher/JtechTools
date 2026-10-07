@@ -163,16 +163,12 @@
     user-select: none;
     border-inline-end: 1px solid var(--jt-border);
 
-    // Core caps <code> at 500px and scrolls it, so the gutter must not size the
-    // row: it took the height of every line, leaving empty numbers under the
-    // code (and spilling out of the box past core's 2000px cap on <pre>). It
-    // takes the code's height instead, and jt-code-blocks scrolls it along.
+    // Core caps <code> at 500px and scrolls it: the gutter takes the code's
+    // height instead of setting the row's, and jt-code-blocks scrolls it along.
+    // The padding keeps the last line reachable under the code's scrollbar.
     block-size: 0;
     min-block-size: 100%;
     overflow: hidden;
-
-    // The code's own horizontal scrollbar eats into its scroll range, so the
-    // gutter needs the same room at the end to reach the last line with it
     padding-block-end: 2rem;
   }
 
