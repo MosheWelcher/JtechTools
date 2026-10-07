@@ -2924,7 +2924,9 @@ RSpec.describe "JTech theme" do
 
     # Core scrolls <code> past 500px; the gutter used to keep every line's height
     it "scrolls a tall code block's line numbers with it, inside the box" do
-      raw = "```bash\n#{(1..60).map { |i| "echo #{i}" }.join("\n")}\n```"
+      lines = (1..60).map { |i| "echo #{i}" }
+      lines[0] += " #{"x" * 400}" # a long line, so the code has a horizontal scrollbar
+      raw = "```bash\n#{lines.join("\n")}\n```"
       tall = Fabricate(:topic, category: category, user: admin)
       Fabricate(:post, topic: tall, user: admin, raw: raw)
       visit(tall.relative_url)
@@ -2935,12 +2937,12 @@ RSpec.describe "JTech theme" do
         const gutter = pre.querySelector(":scope > .jt-lines");
         code.scrollTop = code.scrollHeight;
         requestAnimationFrame(() => requestAnimationFrame(() => arguments[0]([
-          code.offsetHeight, gutter.offsetHeight, pre.offsetHeight, code.scrollTop, gutter.scrollTop,
+          code.clientHeight, gutter.offsetHeight, pre.offsetHeight, code.scrollTop, gutter.scrollTop,
         ])));
       JS
       code_height, gutter_height, pre_height, code_top, gutter_top = sizes
       expect(gutter_height).to eq(code_height)
-      expect(pre_height).to be <= code_height + 2 # the box's border
+      expect(pre_height).to be <= code_height + 40 # the box's border and the scrollbar
       expect(code_top).to be > 0
       expect(gutter_top).to eq(code_top)
     end

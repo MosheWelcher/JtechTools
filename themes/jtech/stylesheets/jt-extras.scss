@@ -167,11 +167,12 @@
     border-inline-end: 1px solid var(--jt-border);
 
     // Core caps <code> at 500px and scrolls it: the gutter takes the code's
-    // height instead of setting the row's, and jt-code-blocks scrolls it along.
-    // The padding keeps the last line reachable under the code's scrollbar.
+    // height instead of setting the row's, less the code's horizontal scrollbar
+    // (--jt-hbar, set by jt-code-blocks), and is scrolled along with it. The
+    // padding gives it room to reach the last line.
     box-sizing: border-box; // else its padding comes on top of the code's height
     block-size: 0;
-    min-block-size: 100%;
+    min-block-size: calc(100% - var(--jt-hbar, 0px));
     overflow: hidden;
     padding-block-end: 2rem;
   }
