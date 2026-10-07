@@ -2917,34 +2917,41 @@ RSpec.describe "JTech theme" do
       sign_in(member)
       visit(lonely_topic.relative_url)
       expect(page).to have_css(".jt-first-reply", text: "Be the first to reply")
-      expect(page).to have_css("pre.jt-numbered .jt-lines", text: "1\n2\n3")
+      expect(page).to have_css("pre.jt-numbered")
+      numbers = page.evaluate_script(
+        "getComputedStyle(document.querySelector('pre.jt-numbered > code'), '::before').content",
+      )
+      expect(numbers).to match(/1.*2.*3/m)
       shot("first-reply")
       expect_no_theme_errors
     end
 
-    # Core scrolls <code> past 500px; the gutter used to keep every line's height
-    it "scrolls a tall code block's line numbers with it, inside the box" do
+    # Core scrolls <code> past 500px. The numbers used to be a separate gutter,
+    # which kept every line's height and trailed the code when it scrolled.
+    it "draws a tall code block's line numbers inside its own scroller" do
       lines = (1..60).map { |i| "echo #{i}" }
       lines[0] += " #{"x" * 400}" # a long line, so the code has a horizontal scrollbar
-      raw = "```bash\n#{lines.join("\n")}\n```"
       tall = Fabricate(:topic, category: category, user: admin)
-      Fabricate(:post, topic: tall, user: admin, raw: raw)
+      Fabricate(:post, topic: tall, user: admin, raw: "```bash\n#{lines.join("\n")}\n```")
       visit(tall.relative_url)
-      expect(page).to have_css("pre.jt-numbered .jt-lines")
-      sizes = page.evaluate_async_script(<<~JS)
-        const [pre] = document.getElementsByClassName("jt-numbered");
-        const code = pre.querySelector(":scope > code");
-        const gutter = pre.querySelector(":scope > .jt-lines");
-        code.scrollTop = code.scrollHeight;
-        requestAnimationFrame(() => requestAnimationFrame(() => arguments[0]([
-          code.clientHeight, gutter.offsetHeight, pre.offsetHeight, code.scrollTop, gutter.scrollTop,
-        ])));
+      expect(page).to have_css("pre.jt-numbered")
+      sizes = page.evaluate_script(<<~JS)
+        (() => {
+          const pre = document.querySelector("pre.jt-numbered");
+          const code = pre.querySelector(":scope > code");
+          const numbers = getComputedStyle(code, "::before");
+          return [
+            code.scrollHeight > code.clientHeight,
+            Math.abs(
+              [numbers.height, numbers.paddingTop, numbers.paddingBottom].reduce((sum, v) => sum + parseFloat(v), 0) -
+                code.scrollHeight,
+            ) < 2,
+            numbers.position,
+            pre.offsetHeight <= code.offsetHeight + 2,
+          ];
+        })()
       JS
-      code_height, gutter_height, pre_height, code_top, gutter_top = sizes
-      expect(gutter_height).to eq(code_height)
-      expect(pre_height).to be <= code_height + 40 # the box's border and the scrollbar
-      expect(code_top).to be > 0
-      expect(gutter_top).to eq(code_top)
+      expect(sizes).to eq([true, true, "sticky", true])
     end
 
     # Code runs left to right in any interface, but core's right-to-left
@@ -2955,15 +2962,16 @@ RSpec.describe "JTech theme" do
       SiteSetting.support_mixed_text_direction = true # as on the forum: code runs left to right
       SiteSetting.default_locale = "he"
       visit(lonely_topic.relative_url)
-      expect(page).to have_css("html.rtl pre.jt-numbered.codeblock-buttons .jt-lines")
+      expect(page).to have_css("html.rtl pre.jt-numbered.codeblock-buttons")
       sides = page.evaluate_script(<<~JS)
         (() => {
-          const gutter = getComputedStyle(document.querySelector("pre.jt-numbered .jt-lines"));
-          const code = getComputedStyle(document.querySelector("pre.jt-numbered > code"));
+          const code = document.querySelector("pre.jt-numbered > code");
+          const gutter = getComputedStyle(code, "::before");
+          const codeStyle = getComputedStyle(code);
           return [
             gutter.borderRightWidth,
             gutter.borderLeftWidth,
-            parseFloat(code.paddingRight) > parseFloat(code.paddingLeft),
+            parseFloat(codeStyle.paddingRight) > parseFloat(codeStyle.paddingLeft),
           ];
         })()
       JS

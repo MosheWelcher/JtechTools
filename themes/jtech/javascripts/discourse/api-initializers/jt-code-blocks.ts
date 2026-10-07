@@ -15,39 +15,21 @@ const ALIASES: Record<string, string> = {
   yml: "yaml",
 };
 
-// Line numbers sit in their own gutter beside the <code>, never inside it:
-// highlight.js rewrites the code's markup, copy buttons read its text, and
-// neither should see the numbers.
+// Line numbers are drawn by a ::before on the <code> (jt-extras.scss) from a
+// string set here, so they scroll with the lines in the code's own scroller and
+// stay out of its text: highlight.js rewrites the code's markup, and copy
+// buttons read its text.
 function addLineNumbers(pre: HTMLElement, code: HTMLElement): void {
-  if (pre.querySelector(":scope > .jt-lines") || pre.closest("aside")) {
+  if (pre.classList.contains("jt-numbered") || pre.closest("aside")) {
     return;
   }
   const lines = (code.textContent ?? "").replace(/\n$/, "").split("\n").length;
   if (lines < 2) {
     return;
   }
-  const gutter = document.createElement("span");
-  gutter.className = "jt-lines";
-  gutter.setAttribute("aria-hidden", "true");
-  gutter.textContent = Array.from({ length: lines }, (_, i) => i + 1).join(
-    "\n"
-  );
+  const numbers = Array.from({ length: lines }, (_, i) => i + 1).join("\\A ");
+  pre.style.setProperty("--jt-numbers", `"${numbers}"`);
   pre.classList.add("jt-numbered");
-  pre.insertBefore(gutter, code);
-  // core scrolls a tall <code> inside its box: the numbers follow, and stop
-  // above its horizontal scrollbar, as the lines do
-  code.addEventListener("scroll", () => (gutter.scrollTop = code.scrollTop), {
-    passive: true,
-  });
-  new ResizeObserver(() => {
-    const box = getComputedStyle(code);
-    const bar =
-      code.offsetHeight -
-      code.clientHeight -
-      parseFloat(box.borderTopWidth) -
-      parseFloat(box.borderBottomWidth);
-    gutter.style.setProperty("--jt-hbar", `${bar}px`);
-  }).observe(code);
 }
 
 export default apiInitializer((api) => {
