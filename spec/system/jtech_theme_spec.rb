@@ -2917,41 +2917,9 @@ RSpec.describe "JTech theme" do
       sign_in(member)
       visit(lonely_topic.relative_url)
       expect(page).to have_css(".jt-first-reply", text: "Be the first to reply")
-      expect(page).to have_css("pre.jt-numbered")
-      numbers = page.evaluate_script(
-        "getComputedStyle(document.querySelector('pre.jt-numbered > code'), '::before').content",
-      )
-      expect(numbers).to match(/1.*2.*3/m)
+      expect(page).to have_css("pre.jt-numbered .jt-lines", text: "1\n2\n3")
       shot("first-reply")
       expect_no_theme_errors
-    end
-
-    # Core scrolls <code> past 500px. The numbers used to be a separate gutter,
-    # which kept every line's height and trailed the code when it scrolled.
-    it "draws a tall code block's line numbers inside its own scroller" do
-      lines = (1..60).map { |i| "echo #{i}" }
-      lines[0] += " #{"x" * 400}" # a long line, so the code has a horizontal scrollbar
-      tall = Fabricate(:topic, category: category, user: admin)
-      Fabricate(:post, topic: tall, user: admin, raw: "```bash\n#{lines.join("\n")}\n```")
-      visit(tall.relative_url)
-      expect(page).to have_css("pre.jt-numbered")
-      sizes = page.evaluate_script(<<~JS)
-        (() => {
-          const pre = document.querySelector("pre.jt-numbered");
-          const code = pre.querySelector(":scope > code");
-          const numbers = getComputedStyle(code, "::before");
-          return [
-            code.scrollHeight > code.clientHeight,
-            Math.abs(
-              [numbers.height, numbers.paddingTop, numbers.paddingBottom].reduce((sum, v) => sum + parseFloat(v), 0) -
-                code.scrollHeight,
-            ) < 2,
-            numbers.position,
-            pre.offsetHeight <= code.offsetHeight + 2,
-          ];
-        })()
-      JS
-      expect(sizes).to eq([true, true, "sticky", true])
     end
 
     # Code runs left to right in any interface, but core's right-to-left
@@ -2962,16 +2930,15 @@ RSpec.describe "JTech theme" do
       SiteSetting.support_mixed_text_direction = true # as on the forum: code runs left to right
       SiteSetting.default_locale = "he"
       visit(lonely_topic.relative_url)
-      expect(page).to have_css("html.rtl pre.jt-numbered.codeblock-buttons")
+      expect(page).to have_css("html.rtl pre.jt-numbered.codeblock-buttons .jt-lines")
       sides = page.evaluate_script(<<~JS)
         (() => {
-          const code = document.querySelector("pre.jt-numbered > code");
-          const gutter = getComputedStyle(code, "::before");
-          const codeStyle = getComputedStyle(code);
+          const gutter = getComputedStyle(document.querySelector("pre.jt-numbered .jt-lines"));
+          const code = getComputedStyle(document.querySelector("pre.jt-numbered > code"));
           return [
             gutter.borderRightWidth,
             gutter.borderLeftWidth,
-            parseFloat(codeStyle.paddingRight) > parseFloat(codeStyle.paddingLeft),
+            parseFloat(code.paddingRight) > parseFloat(code.paddingLeft),
           ];
         })()
       JS

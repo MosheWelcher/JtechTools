@@ -139,49 +139,46 @@
 }
 
 // ── Code line numbers (api-initializers/jt-code-blocks) ───
-// A sticky ::before on the <code>, in the code's own scroller: the numbers
-// scroll with the lines (a separate gutter scrolled by script trailed them),
-// stay put while a long line scrolls sideways, and end above the scrollbar.
-// The code's own left padding goes, since a sticky box can't sit outside its
-// container's content box. Its sides are logical, taken from the way the block
-// runs: with mixed text direction on (as on jtechforums.org) core runs a code
-// block left to right in a Hebrew interface too, but its right-to-left
-// stylesheet flips every physical left and right, so the line between the
-// numbers and the code moved onto the block's outer edge and the numbers lost
-// their right alignment.
+// The gutter and the code share one grid row, so the numbers stay put while a
+// long line scrolls sideways. The gutter's sides are logical, taken from the
+// way the block runs: with mixed text direction on (as on jtechforums.org)
+// core runs a code block left to right in a Hebrew interface too, but its
+// right-to-left stylesheet flips every physical left and right, so the line
+// between the numbers and the code moved onto the block's outer edge and the
+// numbers lost their right alignment.
 .cooked pre.jt-numbered,
 .d-editor-preview pre.jt-numbered {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+
+  > .jt-lines {
+    padding-block: 12px;
+    padding-inline: 0.85em 0.6em;
+    font-family: var(--jt-font-mono);
+    font-size: var(--font-down-1);
+
+    // the code's line box (jt-type): inheriting the post's 1.7 would multiply
+    // the gutter's smaller font and drift off the lines as the code scrolls
+    line-height: calc(var(--jt-text-sm) * 1.6);
+    color: var(--jt-text-subtle);
+    text-align: end;
+    white-space: pre;
+    user-select: none;
+    border-inline-end: 1px solid var(--jt-border);
+
+    // Core caps <code> at 500px and scrolls it: the gutter takes the code's
+    // height instead of setting the row's, less the code's horizontal scrollbar
+    // (--jt-hbar, set by jt-code-blocks), and is scrolled along with it. The
+    // padding gives it room to reach the last line.
+    box-sizing: border-box; // else its padding comes on top of the code's height
+    block-size: 0;
+    min-block-size: calc(100% - var(--jt-hbar, 0px));
+    overflow: hidden;
+    padding-block-end: 2rem;
+  }
+
   > code {
-    padding-inline-start: 0;
-
-    &::before {
-      content: var(--jt-numbers);
-      float: inline-start;
-      position: sticky;
-      inset-inline-start: 0;
-      z-index: 1;
-      margin-block: -12px; // the code's own padding: the column runs full height
-      margin-inline: 0 12px;
-      padding-block: 12px;
-      padding-inline: 0.85em 0.6em;
-      font-family: var(--jt-font-mono);
-      font-size: var(--font-down-1);
-
-      // the code's line box (jt-type): inheriting the post's 1.7 would multiply
-      // the numbers' smaller font and drift off the lines
-      line-height: calc(var(--jt-text-sm) * 1.6);
-      color: var(--jt-text-subtle);
-      text-align: end;
-      white-space: pre;
-      user-select: none;
-      background: var(--jt-surface-sunken); // covers the code scrolled under it
-      border-inline-end: 1px solid var(--jt-border);
-
-      // read by no screen reader, as the old gutter was
-      @supports (content: "a" / "") {
-        content: var(--jt-numbers) / "";
-      }
-    }
+    overflow-x: auto;
   }
 }
 
@@ -194,10 +191,6 @@
 @media (width < 40rem) {
   .cooked pre.codeblock-buttons > code {
     padding-inline: 12px 2.75em;
-  }
-
-  .cooked pre.jt-numbered.codeblock-buttons > code {
-    padding-inline: 0 2.75em;
   }
 }
 
